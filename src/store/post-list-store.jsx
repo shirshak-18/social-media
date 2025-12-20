@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useReducer,
-  useState,
-} from "react";
+import { createContext, useCallback, useEffect, useReducer } from "react";
 
 export const PostList = createContext({
   postList: [],
@@ -19,7 +13,9 @@ const postListReducer = (currPostList, action) => {
       (post) => post.id !== action.payload.postId
     );
   } else if (action.type === "ADD_INITIAL_POSTS") {
-    newPostList = action.payload.posts;
+    newPostList = Array.isArray(action.payload.posts)
+      ? action.payload.posts
+      : [];
   } else if (action.type === "ADD_POST") {
     newPostList = [action.payload, ...currPostList];
   }
@@ -28,6 +24,25 @@ const postListReducer = (currPostList, action) => {
 
 const PostListProvider = ({ children }) => {
   const [postList, dispatchPostList] = useReducer(postListReducer, []);
+  useEffect(() => {
+    fetch("https://dummyjson.com/posts")
+      .then((res) => res.json())
+      .then((data) => {
+        dispatchPostList({
+          type: "ADD_INITIAL_POSTS",
+          payload: {
+            posts: Array.isArray(data.posts) ? data.posts : [],
+          },
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to load posts", error);
+        dispatchPostList({
+          type: "ADD_INITIAL_POSTS",
+          payload: { posts: [] },
+        });
+      });
+  }, []);
 
   const addPost = (post) => {
     dispatchPostList({
@@ -36,14 +51,14 @@ const PostListProvider = ({ children }) => {
     });
   };
 
-  const addInitialPosts = (posts) => {
-    dispatchPostList({
-      type: "ADD_INITIAL_POSTS",
-      payload: {
-        posts,
-      },
-    });
-  };
+  // const addInitialPosts = (posts) => {
+  //   dispatchPostList({
+  //     type: "ADD_INITIAL_POSTS",
+  //     payload: {
+  //       posts,
+  //     },
+  //   });
+  // };
 
   const deletePost = useCallback(
     (postId) => {

@@ -1,5 +1,5 @@
 import { Form, useActionData, useNavigate } from "react-router-dom";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { PostList } from "../store/post-list-store";
 
 const CreatePost = () => {
@@ -7,9 +7,11 @@ const CreatePost = () => {
   const createdPost = useActionData();
   const { addPost } = useContext(PostList);
   const navigate = useNavigate();
+  const hasNavigated = useRef(false);
   useEffect(() => {
-    if (createdPost) {
+    if (createdPost && !hasNavigated.current) {
       addPost(createdPost);
+      hasNavigated.current = true;
       navigate("/");
     }
   }, [addPost, createdPost, navigate]);
@@ -92,8 +94,13 @@ const CreatePost = () => {
 export async function createPostAction({ request }) {
   const formData = await request.formData();
   const postData = Object.fromEntries(formData);
+
   postData.tags = postData.tags.split(" ");
-  console.log(postData);
+
+  postData.reactions = {
+    likes: Number(postData.reactions),
+    dislikes: 0,
+  };
 
   const response = await fetch("https://dummyjson.com/posts/add", {
     method: "POST",
@@ -102,9 +109,6 @@ export async function createPostAction({ request }) {
   });
 
   const createdPost = await response.json();
-
-  console.log("fetch response:", response);
-  console.log("created post:", createdPost);
 
   return createdPost;
 }
